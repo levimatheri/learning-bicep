@@ -1,0 +1,15 @@
+<policies>
+    <inbound>
+        <base />
+    </inbound>
+    <backend>
+        <base />
+    </backend>
+    <outbound>
+        <base />
+        <set-status code="200" reason="Oh yeah!" />
+    </outbound>
+    <on-error>
+        <base />
+    </on-error>
+</policies>
