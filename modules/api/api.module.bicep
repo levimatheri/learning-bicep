@@ -4,8 +4,8 @@ param name string
 @description('Optional. Policy to apply to the Service API.')
 param policy object = {}
 
-@description('Optional. Array of Operation policies to apply to the Service API.')
-param operationPolicies array = []
+@description('Optional. Array of Operation properties to apply to the Service API, i.e. policies, tags')
+param operations array = []
 
 @description('Optional. Array of Tags to apply to the Service API.')
 param tags array = []
@@ -26,6 +26,8 @@ param apiRevisionDescription string = ''
 @allowed([
   'http'
   'soap'
+  'websocket'
+  'graphql'
 ])
 param apiType string = 'http'
 
@@ -60,6 +62,7 @@ param displayName string
   'openapi+json'
   'openapi-link'
   'openapi+json-link'
+  'graphql-link'
 ])
 param format string = 'openapi'
 
@@ -91,6 +94,8 @@ param subscriptionRequired bool = false
 @allowed([
   'http'
   'soap'
+  'websocket'
+  'graphql'
 ])
 param type string = 'http'
 
@@ -100,6 +105,8 @@ param value string = ''
 @description('Optional. Criteria to limit import of WSDL to a subset of the document.')
 param wsdlSelector object = {}
 
+@description('Optional. An array of self-hosted gateway names')
+param gateways array = []
 
 resource service 'Microsoft.ApiManagement/service@2021-08-01' existing = {
   name: apiManagementServiceName
@@ -143,18 +150,25 @@ resource api_policy 'Microsoft.ApiManagement/service/apis/policies@2021-08-01' =
   }
 }
 
-resource operationPolicyResources 'Microsoft.ApiManagement/service/apis/operations@2021-08-01' existing = [for i in range(0, length(operationPolicies)): {
-  name: operationPolicies[i].operationName
+resource operationPolicyResources 'Microsoft.ApiManagement/service/apis/operations@2021-08-01' existing = [for i in range(0, length(operations)): {
+  name: operations[i].operationName
   parent: api
 }]
 
-resource api_operation_policies 'Microsoft.ApiManagement/service/apis/operations/policies@2021-08-01' = [for i in range(0, length(operationPolicies)): {
+// API Operation policy
+resource api_operation_policy 'Microsoft.ApiManagement/service/apis/operations/policies@2021-08-01' = [for i in range(0, length(operations)): {
   name: 'policy'
   parent: operationPolicyResources[i]
   properties: {
-    format: contains(operationPolicies[i], 'format') ? operationPolicies[i].format : 'rawxml'
-    value: !contains(operationPolicies[i], 'params') ? operationPolicies[i].value : reduce(items(operationPolicies[i].params), operationPolicies[i].value, (result, param) => replace(string(result), '\$(${param.key})', param.value))
+    format: contains(operations[i].policy, 'format') ? operations[i].policy.format : 'rawxml'
+    value: !contains(operations[i].policy, 'params') ? operations[i].policy.value : reduce(items(operations[i].policy.params), operations[i].policy.value, (result, param) => replace(string(result), '\$(${param.key})', param.value))
   }
+}]
+
+// API Operation tag
+resource api_operation_tag 'Microsoft.ApiManagement/service/apis/operations/tags@2021-08-01' = [for i in range(0, length(operations)): {
+  name: operations[i].tag
+  parent: operationPolicyResources[i]
 }]
 
 // API tags
@@ -180,4 +194,15 @@ resource productResourceNames 'Microsoft.ApiManagement/service/products@2021-08-
 resource api_product 'Microsoft.ApiManagement/service/products/apis@2021-08-01' = [for i in range(0, length(products)): {
   name: api.name
   parent: productResourceNames[i]
+}]
+
+resource gatewayResourceNames 'Microsoft.ApiManagement/service/gateways@2021-08-01' existing = [for i in range(0, length(products)): {
+  parent: service
+  name: gateways[i]
+}]
+
+// API self-hosted gateways
+resource api_gateway 'Microsoft.ApiManagement/service/gateways/apis@2021-08-01' = [for i in range(0, length(products)): {
+  name: api.name
+  parent: gatewayResourceNames[i]
 }]

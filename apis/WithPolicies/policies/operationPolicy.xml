@@ -2,7 +2,7 @@
   <inbound>
       <base />
       <set-header name="MyHeader" exists-action="override">
-          <value>Wassup!</value>
+          <value>$(myHeaderValue)</value>
       </set-header>
   </inbound>
   <backend>
