@@ -5,8 +5,16 @@ param apiDisplayName string
 param apiPath string
 param apiServiceUrl string
 param apiTags array
-param backendId string
-param backendUrl string
+
+// policy file  parameters
+param statusCode string
+param statusReason string
+
+// environment parameters
+@allowed([
+  'nonprod','prod'
+])
+param environmentConfig string
 
 module api '../../modules/api/api.module.bicep' = {
   name: '${apiName}-API'
@@ -21,22 +29,19 @@ module api '../../modules/api/api.module.bicep' = {
     products: ['developers', 'petstore']
     value: '${apiServiceUrl}/v2/swagger.json'
     format: 'swagger-link-json'
-    policies: [{
+    policy: {
       format: 'rawxml'
       value: loadTextContent('policies/apiPolicy.xml')
       params: {
-        backendId: backendId
-        backendUrl: backendUrl
+        statusCode: statusCode
+        statusReason: statusReason
       }
-    }]
+    }
+    operationPolicies: [
+      {
+        operationName: 'updatePetWithForm'
+        value: loadTextContent('policies/operationPolicy.xml')
+      }
+    ]
   }
 }
-
-module tags '../../modules/service/tag.module.bicep' = [for tag in apiTags : {
-  name: '${tag}-Tag'
-  params: {
-    apiManagementServiceName: apimServiceName
-    tagName: tag
-    tagDisplayName: tag
-  }
-}]

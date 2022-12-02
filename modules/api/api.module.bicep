@@ -1,8 +1,11 @@
 @description('Required. API revision identifier. Must be unique in the current API Management service instance. Non-current revision has ;rev=n as a suffix where n is the revision number.')
 param name string
 
-@description('Optional. Array of Policies to apply to the Service API.')
-param policies array = []
+@description('Optional. Policy to apply to the Service API.')
+param policy object = {}
+
+@description('Optional. Array of Operation policies to apply to the Service API.')
+param operationPolicies array = []
 
 @description('Optional. Array of Tags to apply to the Service API.')
 param tags array = []
@@ -130,33 +133,51 @@ resource api 'Microsoft.ApiManagement/service/apis@2021-08-01' = {
   }
 }
 
-// API policies
-module policy 'api-policy.module.bicep' = [for (policy, index) in policies: {
-  name: '${deployment().name}-Policy-${index}'
-  params: {
-    apiManagementServiceName: apiManagementServiceName
-    apiName: api.name
+// API policy
+resource api_policy 'Microsoft.ApiManagement/service/apis/policies@2021-08-01' = {
+  name: 'policy'
+  parent: api
+  properties: {
     format: contains(policy, 'format') ? policy.format : 'rawxml'
     value: !contains(policy, 'params') ? policy.value : reduce(items(policy.params), policy.value, (result, param) => replace(string(result), '\$(${param.key})', param.value))
+  }
+}
+
+resource operationPolicyResources 'Microsoft.ApiManagement/service/apis/operations@2021-08-01' existing = [for i in range(0, length(operationPolicies)): {
+  name: operationPolicies[i].operationName
+  parent: api
+}]
+
+resource api_operation_policies 'Microsoft.ApiManagement/service/apis/operations/policies@2021-08-01' = [for i in range(0, length(operationPolicies)): {
+  name: 'policy'
+  parent: operationPolicyResources[i]
+  properties: {
+    format: contains(operationPolicies[i], 'format') ? operationPolicies[i].format : 'rawxml'
+    value: !contains(operationPolicies[i], 'params') ? operationPolicies[i].value : reduce(items(operationPolicies[i].params), operationPolicies[i].value, (result, param) => replace(string(result), '\$(${param.key})', param.value))
   }
 }]
 
 // API tags
-module api_tag 'api-tag.module.bicep' = [for tag in tags: {
-  name: '${deployment().name}-Tag-${tag}'
-  params: {
-    apiManagementServiceName: apiManagementServiceName
-    apiName: api.name
-    tagName: tag
+resource api_tags 'Microsoft.ApiManagement/service/apis/tags@2021-08-01' = [for tag in tags: {
+  parent: api
+  name: tag
+}]
+
+resource tagResources 'Microsoft.ApiManagement/service/tags@2021-08-01' = [for tag in tags: {
+  name: tag
+  parent: service
+  properties: {
+    displayName: tag
   }
 }]
 
+resource productResourceNames 'Microsoft.ApiManagement/service/products@2021-08-01' existing = [for i in range(0, length(products)): {
+  parent: service
+  name: products[i]
+}]
+
 // API products
-module api_product 'api-product.module.bicep' = [for product in products: {
-  name: '${deployment().name}-Product-${product}'
-  params: {
-    apiManagementServiceName: apiManagementServiceName
-    apiName: api.name
-    productName: product
-  }
+resource api_product 'Microsoft.ApiManagement/service/products/apis@2021-08-01' = [for i in range(0, length(products)): {
+  name: api.name
+  parent: productResourceNames[i]
 }]
