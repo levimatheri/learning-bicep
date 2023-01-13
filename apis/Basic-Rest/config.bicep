@@ -16,8 +16,8 @@ module api '../../modules/api/api.module.bicep' = {
     displayName: apiDisplayName
     serviceUrl: apiServiceUrl
     tags: apiTags
-    products: ['developers', 'petstore']
-    value: '${apiServiceUrl}/v2/swagger.json'
+    products: ['AdminPortal', 'frontend-mhol', 'developers', 'myupmc']
+    value: '${apiServiceUrl}/swagger/docs/v1'
     format: 'swagger-link-json'
   }
 }

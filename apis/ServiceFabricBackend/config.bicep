@@ -23,19 +23,30 @@ module api '../../modules/api/api.module.bicep' = {
     displayName: apiDisplayName
     serviceUrl: apiServiceUrl
     tags: apiTags
-    products: ['developers', 'petstore']
-    value: '${apiServiceUrl}/v2/swagger.json'
+    products: ['AdminPortal', 'frontend-mhol', 'developers', 'digitalconcierge', 'mobile', 'providerportal', 'contactcenterdashboard', 'chatbot']
+    value: '${apiServiceUrl}/docs/v1/swagger'
     format: 'swagger-link-json'
+    policy: {
+      format: 'rawxml'
+      value: loadTextContent('policies/apiPolicy.xml')
+      params: {
+        backendId: backendId
+        backendUrl: backendUrl
+      }
+    }
   }
+  dependsOn: [
+    backend
+  ]
 }
 
-module backend '../../modules/service/backend.module.bicep' = {
+module backend '../../modules/api/backend.module.bicep' = {
   name: '${apiName}-Backend'
   params: {
     apiManagementServiceName: apimServiceName
     name: backendId
     title: backendTitle
-    backendDescription: 'Service Fabric backend for ${backendId}'
+    backendDescription: 'Service Fabric backend for ${backendUrl}'
     url: backendUrl
     protocol: 'http'
     serviceFabricCluster: {
@@ -46,7 +57,6 @@ module backend '../../modules/service/backend.module.bicep' = {
       serverX509Names: [
         {
           name: serverCertificateName
-          issuerCertificateThumbprint: ''
         }
       ]
     }

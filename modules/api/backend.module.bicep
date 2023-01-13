@@ -38,6 +38,7 @@ resource service 'Microsoft.ApiManagement/service@2021-08-01' existing = {
   name: apiManagementServiceName
 }
 
+
 resource backend 'Microsoft.ApiManagement/service/backends@2021-08-01' = {
   name: name
   parent: service
@@ -46,7 +47,13 @@ resource backend 'Microsoft.ApiManagement/service/backends@2021-08-01' = {
     description: !empty(backendDescription) ? backendDescription : null
     resourceId: !empty(resourceId) ? resourceId : null
     properties: {
-      serviceFabricCluster: !empty(serviceFabricCluster) ? serviceFabricCluster : null
+      serviceFabricCluster: empty(serviceFabricCluster) ? null : {
+        clientCertificateId: '${service.id}/certificates/${serviceFabricCluster.clientCertificateId}'
+        maxPartitionResolutionRetries: serviceFabricCluster.maxPartitionResolutionRetries
+        managementEndpoints: serviceFabricCluster.managementEndpoints
+        serverCertificateThumbprints: []
+        serverX509Names: serviceFabricCluster.serverX509Names
+      }
     }
     credentials: !empty(credentials) ? credentials : null
     proxy: !empty(proxy) ? proxy : null

@@ -7,6 +7,8 @@ param apiServiceUrl string
 param apiTags array
 
 param isNonProdEnv bool
+param isStagingEnv bool
+param isProdEnv bool
 
 module api '../../modules/api/api.module.bicep' = {
   name: '${apiName}-API'
@@ -19,7 +21,7 @@ module api '../../modules/api/api.module.bicep' = {
     serviceUrl: apiServiceUrl
     tags: apiTags
     products: ['developers', 'petstore']
-    value: isNonProdEnv ? loadTextContent('petstore.json') : '${apiServiceUrl}/v2/swagger.json'
-    format: isNonProdEnv ? 'openapi+json' : 'swagger-link-json'
+    value: isNonProdEnv ? loadTextContent('petstore.nonprod.json') : isStagingEnv ? loadTextContent('petstore.staging.json') : isProdEnv ? loadTextContent('petstore.prod.json') : ''
+    format: 'openapi+json'
   }
 }

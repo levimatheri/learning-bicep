@@ -85,10 +85,13 @@ param serviceUrl string = ''
 param sourceApiId string = ''
 
 @description('Optional. Protocols over which API is made available.')
-param subscriptionKeyParameterNames object = {}
+param subscriptionKeyParameterNames object = {
+  header: 'Ocp-Apim-Subscription-Key'
+  query: 'subscription-key'
+}
 
-@description('Optional. Specifies whether an API or Product subscription is required for accessing the API.')
-param subscriptionRequired bool = false
+@description('Optional. Specifies whether an API or Product subscription is required for accessing the API. Defaults to true')
+param subscriptionRequired bool = true
 
 @description('Optional. Type of API.')
 @allowed([
@@ -141,7 +144,7 @@ resource api 'Microsoft.ApiManagement/service/apis@2021-08-01' = {
 }
 
 // API policy
-resource api_policy 'Microsoft.ApiManagement/service/apis/policies@2021-08-01' = {
+resource api_policy 'Microsoft.ApiManagement/service/apis/policies@2021-08-01' = if (!empty(policy)) {
   name: 'policy'
   parent: api
   properties: {
@@ -196,13 +199,13 @@ resource api_product 'Microsoft.ApiManagement/service/products/apis@2021-08-01' 
   parent: productResourceNames[i]
 }]
 
-resource gatewayResourceNames 'Microsoft.ApiManagement/service/gateways@2021-08-01' existing = [for i in range(0, length(products)): {
+resource gatewayResourceNames 'Microsoft.ApiManagement/service/gateways@2021-08-01' existing = [for i in range(0, length(gateways)): {
   parent: service
   name: gateways[i]
 }]
 
 // API self-hosted gateways
-resource api_gateway 'Microsoft.ApiManagement/service/gateways/apis@2021-08-01' = [for i in range(0, length(products)): {
+resource api_gateway 'Microsoft.ApiManagement/service/gateways/apis@2021-08-01' = [for i in range(0, length(gateways)): {
   name: api.name
   parent: gatewayResourceNames[i]
 }]

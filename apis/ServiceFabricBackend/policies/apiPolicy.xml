@@ -1,0 +1,15 @@
+<policies>
+    <inbound>
+        <base />
+        <set-backend-service backend-id="$(backendId)" sf-resolve-condition="@(context.LastError?.Reason == "BackendConnectionFailure")" sf-service-instance-name="$(backendUrl)" />
+    </inbound>
+    <backend>
+        <base />
+    </backend>
+    <outbound>
+        <base />
+    </outbound>
+    <on-error>
+        <base />
+    </on-error>
+</policies>
